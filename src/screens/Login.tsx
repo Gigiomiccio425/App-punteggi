@@ -15,7 +15,6 @@ export function Login() {
   const [tab, setTab] = useState<'in' | 'up'>('in');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
-  const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [busy, setBusy] = useState(false);
@@ -40,7 +39,7 @@ export function Login() {
     if (tab === 'in') void run(() => backend.signIn(identifier, password));
     else
       void run(async () => {
-        await backend.signUp({ email, password, username, displayName });
+        await backend.signUp({ password, username, displayName });
         toast('Benvenuto al tavolo! Hai ricevuto le fiches di benvenuto.', 'win');
       });
   };
@@ -64,8 +63,8 @@ export function Login() {
         {tab === 'in' ? (
           <>
             <label className="field">
-              <span>{backend.mode === 'demo' ? 'Username o email' : 'Email'}</span>
-              <input value={identifier} onChange={(e) => setIdentifier(e.target.value)} autoComplete="username" required />
+              <span>Username</span>
+              <input value={identifier} onChange={(e) => setIdentifier(e.target.value.toLowerCase())} autoComplete="username" autoCapitalize="none" required />
             </label>
             <label className="field">
               <span>Password</span>
@@ -75,12 +74,8 @@ export function Login() {
         ) : (
           <>
             <label className="field">
-              <span>Email</span>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
-            </label>
-            <label className="field">
               <span>Username (pubblico)</span>
-              <input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} pattern="[a-z0-9_.]{3,20}" title="3-20 caratteri: minuscole, numeri, _ e ." required />
+              <input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} pattern="[a-z0-9_.]{3,20}" title="3-20 caratteri: minuscole, numeri, _ e ." autoComplete="username" autoCapitalize="none" required />
             </label>
             <label className="field">
               <span>Nome visualizzato</span>
@@ -102,8 +97,8 @@ export function Login() {
         <section className="panel panel-dark demo-box">
           <h2 className="panel-title">Modalità demo</h2>
           <p className="small muted">
-            I dati restano in questo browser. Apri l’app in <strong>più schede</strong> e accedi con account diversi per simulare più telefoni:
-            l’NFC tra telefoni è simulato tra le schede. Password per tutti: <code>{DEMO_PASSWORD}</code>.
+            I dati restano in questo browser. Apri l’app in <strong>più schede</strong> e accedi con account diversi per simulare più telefoni;
+            adesivi e braccialetti NFC sono virtuali. Password per tutti: <code>{DEMO_PASSWORD}</code>.
           </p>
           <div className="demo-accounts">
             {(demo.data ?? []).map((a) => (

@@ -1,4 +1,4 @@
-// Modello di dominio condiviso da UI, backend demo e backend Supabase.
+// Modello di dominio condiviso da UI, backend demo (browser) e API PHP (server/api).
 
 export type Role = 'player' | 'game_master' | 'staff';
 export type GameMode = 'chips' | 'lives' | 'points';
@@ -142,7 +142,8 @@ export interface Settings {
   streakBonusPct: number;
   maxStreak: number;
   joinTokenTtlSeconds: number;
-  allowQrFallback: boolean;
+  /** ingresso con codice tavolo + PIN (e QR): indispensabile per gli iPhone */
+  allowManualCode: boolean;
   timezone: string;
 }
 

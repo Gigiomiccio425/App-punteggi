@@ -5,6 +5,8 @@ import { useAsync } from '../../app/hooks';
 import type { GameDef, GmRequestStatus, Outcome, Profile, Role, Settings, TableStatus } from '../../core/types';
 import { dateTime, fmt, LEDGER_LABEL, MODE_LABEL, ROLE_LABEL, signed } from '../../lib/format';
 import { Avatar, Confirm, Empty, Modal, Panel, RoleBadge, Segmented, Spinner, StatusPill, Toggle } from '../../ui/kit';
+import { NfcWriteButton, useNfcCaps } from '../../ui/nfc-ui';
+import { passUrl } from '../../nfc/payload';
 
 export function Admin() {
   return (
@@ -130,6 +132,7 @@ function Users() {
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
   const [ban, setBan] = useState<Profile | null>(null);
+  const caps = useNfcCaps();
   const act = async (fn: () => Promise<void>, ok: string) => {
     try {
       await fn();
@@ -168,6 +171,15 @@ function Users() {
               <button type="button" className="btn btn-small btn-felt" onClick={() => setAdjust(u)}>
                 ± Fiches
               </button>
+              {caps.data?.canWrite && (
+                <NfcWriteButton
+                  label="🎫 Pass"
+                  done={`Braccialetto di ${u.displayName} scritto`}
+                  tagLabel={`Braccialetto di @${u.username}`}
+                  getUrl={async () => passUrl(await backend.adminUserPassToken(u.id))}
+                  className="btn btn-small btn-ghost"
+                />
+              )}
               <button type="button" className={`btn btn-small ${u.banned ? 'btn-ghost' : 'btn-red'}`} disabled={u.id === me.id} onClick={() => setBan(u)}>
                 {u.banned ? 'Riattiva' : 'Sospendi'}
               </button>
@@ -495,7 +507,12 @@ function SettingsAdmin() {
         <span>Validità codici NFC/QR (secondi, 0 = senza scadenza)</span>
         <input type="number" min={0} value={cur.joinTokenTtlSeconds} onChange={(e) => set({ joinTokenTtlSeconds: Number(e.target.value) })} />
       </label>
-      <Toggle checked={cur.allowQrFallback} onChange={(v) => set({ allowQrFallback: v })} label="Consenti ingresso con QR/PIN" hint="Se disattivato si entra solo con l’NFC" />
+      <Toggle
+        checked={cur.allowManualCode}
+        onChange={(v) => set({ allowManualCode: v })}
+        label="Consenti ingresso con codice tavolo + PIN (e QR)"
+        hint="Indispensabile per chi usa iPhone. Se disattivato si entra solo con l’NFC (adesivo o braccialetto, letti da Android)."
+      />
       <label className="field">
         <span>Fuso orario (cambio giorno del bonus)</span>
         <input value={cur.timezone} onChange={(e) => set({ timezone: e.target.value })} />

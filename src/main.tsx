@@ -15,7 +15,7 @@ import { createNfcService } from './nfc/nfc';
 
 async function boot() {
   const backend = await createBackend();
-  const nfc = createNfcService({ allowSimulator: backend.mode === 'demo' });
+  const nfc = createNfcService({ demo: backend.mode === 'demo' });
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <AppProvider backend={backend} nfc={nfc}>

@@ -19,7 +19,7 @@ export const DEFAULT_SETTINGS: Settings = {
   streakBonusPct: 10,
   maxStreak: 7,
   joinTokenTtlSeconds: 120,
-  allowQrFallback: true,
+  allowManualCode: true,
   timezone: 'Europe/Rome',
 };
 

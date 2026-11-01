@@ -10,7 +10,7 @@ export function useNfcCaps() {
   return useAsync<NfcCapabilities>(() => nfc.capabilities(), [nfc]);
 }
 
-export function NfcWaves({ active = true, label, mode = 'read' }: { active?: boolean; label?: ReactNode; mode?: 'read' | 'emit' | 'write' }) {
+export function NfcWaves({ active = true, label, mode = 'read' }: { active?: boolean; label?: ReactNode; mode?: 'read' | 'write' }) {
   return (
     <div className={`nfc-waves nfc-${mode} ${active ? 'active' : ''}`}>
       <span className="ring r1" />
@@ -27,7 +27,7 @@ export function NfcWaves({ active = true, label, mode = 'read' }: { active?: boo
   );
 }
 
-/** Gestione di una sessione di lettura NFC con modale "avvicina il telefono". */
+/** Sessione di lettura NFC con la finestra "avvicina il telefono al tag". */
 export function useNfcReader() {
   const { nfc } = useApp();
   const ctrl = useRef<AbortController | null>(null);
@@ -68,26 +68,25 @@ export function useNfcReader() {
 function NfcReadSheet({ prompt, onCancel }: { prompt: string | null; onCancel: () => void }) {
   const { nfc } = useApp();
   const sim = nfc instanceof SimulatedNfc ? nfc : null;
-  const tags = sim?.virtualTags() ?? [];
+  const tags = prompt !== null && sim ? sim.virtualTags() : [];
   return (
     <Modal open={prompt !== null} onClose={onCancel} title="Lettura NFC">
       <NfcWaves label={prompt} />
       {sim && (
         <div className="sim-box">
-          <p className="muted small">
-            Simulatore: la lettura avviene appena un’altra scheda “emette” (telefono del master o pass di un giocatore).
+          <p className="small">
+            <strong>Simulatore:</strong> tocca un adesivo o un braccialetto virtuale (si creano con “Scrivi” dal master o dal profilo).
           </p>
-          {tags.length > 0 && (
-            <>
-              <p className="small">Oppure tocca un adesivo virtuale già scritto:</p>
-              <div className="sim-tags">
-                {tags.map((t) => (
-                  <button key={t} type="button" className="btn btn-ghost btn-small" onClick={() => sim.tapVirtualTag(t)}>
-                    🏷️ {t.replace(/^https?:\/\/[^/]+/, '')}
-                  </button>
-                ))}
-              </div>
-            </>
+          {tags.length ? (
+            <div className="sim-tags">
+              {tags.map((t) => (
+                <button key={t.label} type="button" className="btn btn-ghost btn-small" onClick={() => sim.tapVirtualTag(t.url)}>
+                  🏷️ {t.label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="small muted">Nessun tag virtuale scritto finora.</p>
           )}
         </div>
       )}
@@ -100,23 +99,7 @@ function NfcReadSheet({ prompt, onCancel }: { prompt: string | null; onCancel: (
   );
 }
 
-/** Il telefono diventa un tag NFC (Android HCE / simulatore) finché il componente è montato e attivo. */
-export function useEmulation(url: string | null, active: boolean) {
-  const { nfc, fail } = useApp();
-  useEffect(() => {
-    if (!active || !url) return;
-    let stopped = false;
-    nfc.startEmulation(url).catch((e) => {
-      if (!stopped) fail(e);
-    });
-    return () => {
-      stopped = true;
-      void nfc.stopEmulation();
-    };
-  }, [nfc, url, active, fail]);
-}
-
-export function NfcWriteButton({ getUrl, label, done, className = 'btn btn-felt' }: { getUrl: () => Promise<string>; label: ReactNode; done: string; className?: string }) {
+export function NfcWriteButton({ getUrl, label, done, tagLabel, className = 'btn btn-felt' }: { getUrl: () => Promise<string>; label: ReactNode; done: string; tagLabel?: string; className?: string }) {
   const { nfc, fail, toast } = useApp();
   const [writing, setWriting] = useState(false);
   const ctrl = useRef<AbortController | null>(null);
@@ -127,7 +110,7 @@ export function NfcWriteButton({ getUrl, label, done, className = 'btn btn-felt'
     setWriting(true);
     try {
       const url = await getUrl();
-      await nfc.write(url, { signal: c.signal, prompt: 'Avvicina l’adesivo o il braccialetto NFC da scrivere' });
+      await nfc.write(url, { signal: c.signal, prompt: 'Avvicina l’adesivo o il braccialetto NFC da scrivere', label: tagLabel });
       sfx.nfc();
       toast(done, 'success');
     } catch (e) {
@@ -143,7 +126,7 @@ export function NfcWriteButton({ getUrl, label, done, className = 'btn btn-felt'
         {label}
       </button>
       <Modal open={writing} onClose={() => ctrl.current?.abort()} title="Scrittura tag NFC">
-        <NfcWaves mode="write" label="Avvicina un adesivo NFC (NTAG213/215/216) al retro del telefono" />
+        <NfcWaves mode="write" label="Avvicina un adesivo o braccialetto NFC (NTAG213/215/216) al retro del telefono" />
         <div className="row-end">
           <button type="button" className="btn btn-ghost" onClick={() => ctrl.current?.abort()}>
             Annulla

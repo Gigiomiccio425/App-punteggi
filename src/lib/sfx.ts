@@ -1,6 +1,4 @@
-import { Capacitor } from '@capacitor/core';
-
-// Effetti sonori sintetizzati con WebAudio (nessun file audio da scaricare) + vibrazione su app nativa.
+// Effetti sonori sintetizzati con WebAudio (nessun file audio da scaricare) + vibrazione (Android).
 
 let ctx: AudioContext | null = null;
 let enabled = true;
@@ -31,23 +29,18 @@ function tone(freq: number, start: number, dur: number, type: OscillatorType = '
   o.stop(a.currentTime + start + dur + 0.02);
 }
 
-async function haptic(kind: 'light' | 'medium' | 'heavy' | 'success' | 'error') {
-  if (!Capacitor.isNativePlatform()) {
-    const nav = typeof navigator !== 'undefined' ? (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }) : null;
-    if (nav && 'vibrate' in nav && nav.userActivation?.hasBeenActive) nav.vibrate(kind === 'error' ? [40, 40, 40] : 25);
-    return;
-  }
-  const { Haptics, ImpactStyle, NotificationType } = await import('@capacitor/haptics');
-  if (kind === 'success') return Haptics.notification({ type: NotificationType.Success });
-  if (kind === 'error') return Haptics.notification({ type: NotificationType.Error });
-  return Haptics.impact({ style: kind === 'heavy' ? ImpactStyle.Heavy : kind === 'medium' ? ImpactStyle.Medium : ImpactStyle.Light });
+function haptic(kind: 'light' | 'medium' | 'heavy' | 'success' | 'error') {
+  const nav = typeof navigator !== 'undefined' ? (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }) : null;
+  if (!nav || !('vibrate' in nav) || !nav.userActivation?.hasBeenActive) return;
+  const pattern: Record<typeof kind, number | number[]> = { light: 15, medium: 30, heavy: 50, success: [20, 40, 30], error: [40, 40, 40] };
+  nav.vibrate(pattern[kind]);
 }
 
 export const sfx = {
   chip() {
     tone(1800, 0, 0.05, 'triangle', 0.08);
     tone(2400, 0.03, 0.05, 'triangle', 0.05);
-    void haptic('light');
+    haptic('light');
   },
   coin() {
     tone(988, 0, 0.08, 'square', 0.05);
@@ -55,12 +48,12 @@ export const sfx = {
   },
   win() {
     [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.09, 0.22, 'triangle', 0.1));
-    void haptic('success');
+    haptic('success');
   },
   lose() {
     tone(330, 0, 0.18, 'sawtooth', 0.05);
     tone(220, 0.15, 0.3, 'sawtooth', 0.05);
-    void haptic('medium');
+    haptic('medium');
   },
   tick() {
     tone(3000, 0, 0.015, 'square', 0.03);
@@ -68,10 +61,10 @@ export const sfx = {
   nfc() {
     tone(1568, 0, 0.09, 'sine', 0.12);
     tone(2093, 0.1, 0.16, 'sine', 0.12);
-    void haptic('success');
+    haptic('success');
   },
   error() {
     tone(180, 0, 0.25, 'square', 0.05);
-    void haptic('error');
+    haptic('error');
   },
 };

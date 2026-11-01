@@ -1,106 +1,128 @@
 # 🎰 Party Casinò
 
-App per le serate di gioco tra amici, **iOS, Android e web**: si entra ai tavoli **avvicinando i telefoni (NFC)**, si gioca con **fiches virtuali**, **vite** o **punti**, e ogni giocatore ha un profilo con statistiche pubbliche. Stile da casinò e sala giochi.
+**Web app** per le serate di gioco tra amici, pensata per girare su un hosting condiviso economico come **Aruba Hosting Linux Basic**: niente database da comprare, i dati stanno in un file **SQLite** gestito da una piccola API **PHP**.
+
+- Su **Android** (Chrome) si entra ai tavoli con l'**NFC**: si avvicina il telefono all'adesivo NFC del tavolo, oppure il master legge il braccialetto NFC del giocatore.
+- Su **iPhone** si entra con il **codice manuale** (codice tavolo + PIN dettato dal master) o inquadrando il QR.
+- Si gioca con **fiches virtuali** (blackjack & co.), **vite** (31, picozzo…) o **punti** (scopa, briscola… anche a coppie).
+- Ogni giocatore ha un **profilo pubblico** con statistiche; i **game master** sono autorizzati dallo staff; c'è un **pannello admin** completo.
 
 > Le fiches sono virtuali e non hanno valore economico: non si comprano e non si convertono.
 
-📄 **Perché questa architettura?** Ricerca completa (web vs nativo, NFC per piattaforma, design) in [`docs/RICERCA.md`](docs/RICERCA.md).
+📄 Ricerca e motivazioni delle scelte (NFC per piattaforma, hosting, design casinò/sala giochi): [`docs/RICERCA.md`](docs/RICERCA.md).
+
+## Come funziona l'ingresso ai tavoli
+
+| Chi | Come entra | Requisiti |
+|---|---|---|
+| Giocatore **Android** | Pulsante *Entra → Leggi l'adesivo NFC del tavolo* e avvicina il telefono all'adesivo | Chrome per Android, sito in **https**, NFC attivo |
+| Giocatore **iPhone** | *Entra* → inserisce **codice tavolo + PIN** mostrati sul telefono del master, oppure inquadra il **QR** con la fotocamera | nessuno |
+| Giocatore con **braccialetto pass** (Android o iPhone) | Il master (Android) avvicina il braccialetto al proprio telefono e lo fa sedere | braccialetto/adesivo NFC scritto dall'app |
+| iPhone XS o successivo, extra | Toccando l'adesivo del tavolo compare una notifica che apre il link in Safari e fa sedere | iPhone sbloccato |
+
+Cose da sapere, perché sono limiti del browser e non dell'app:
+
+- **Dal browser due telefoni non si "leggono" tra loro**: serve sempre un tag NFC (adesivo del tavolo o braccialetto). Il master **scrive** l'adesivo con il suo Android direttamente dall'app.
+- **Su iPhone il browser non può usare l'NFC** (Safari non supporta Web NFC), quindi niente lettura dall'app né scrittura di braccialetti. I braccialetti per chi ha iPhone li scrive lo staff dal pannello admin con un telefono Android.
+- Il **PIN** si rinnova da solo (ogni 2 minuti, configurabile). L'adesivo del tavolo vale finché il tavolo resta aperto. Lo staff può disattivare il codice manuale per imporre l'NFC, ma così gli iPhone possono entrare solo con il braccialetto.
+- Gli aggiornamenti tra telefoni arrivano con un **controllo ogni 2 secondi** al tavolo (6 secondi nelle altre pagine), perché l'hosting condiviso non offre WebSocket.
 
 ## Funzionalità
 
 | Area | Cosa c'è |
 |---|---|
-| **Account** | registrazione, profilo pubblico (avatar, colore, bio), saldo fiches, livello, medaglie, statistiche per gioco, ultime partite |
+| **Account** | registrazione con username e password (il **primo iscritto diventa staff**), profilo pubblico (avatar, colore, bio), saldo, livello, medaglie, statistiche per gioco, ultime partite, cambio password |
 | **Bonus giornaliero** | ruota della fortuna (esito deciso dal server), serie di giorni consecutivi con bonus crescente |
-| **Game master** | i giocatori chiedono l'autorizzazione, lo staff approva o rifiuta; solo i GM (e lo staff) aprono tavoli |
-| **Tavoli** | minimo 3 partecipanti master incluso (2 per scopa e giochi di coppia), stato *in attesa → in gioco → chiuso* |
-| **Ingresso NFC** | telefono-a-telefono (Android HCE), lettura del pass giocatore (braccialetto/adesivo o Android), adesivo NFC del tavolo, QR/PIN di riserva disattivabile |
-| **Giochi a fiches** | Blackjack, Sette e mezzo, Roulette, Baccarat, Poker. Il master registra puntata ed esito di ogni mano; le fiches si aggiornano **a ogni mano** o **alla chiusura** del tavolo |
-| **Giochi a vite** | Trentuno, Picozzo, Cucù, gioco libero. Il master tiene la tabella; ognuno vede in grande la propria situazione e quella degli altri nel tabellone |
-| **Giochi a punti** | Scopa, Briscola, Tressette, Burraco, anche **a coppie** |
+| **Game master** | i giocatori chiedono l'autorizzazione con una motivazione; lo staff approva o rifiuta |
+| **Tavoli** | minimo 3 partecipanti master incluso (2 per i giochi di coppia), stati *in attesa → in gioco → chiuso*, un tavolo alla volta per giocatore |
+| **Fiches** | Blackjack, Sette e mezzo, Roulette, Baccarat, Poker: il master registra puntata ed esito di ogni mano. Le fiches si aggiornano **a ogni mano** o **alla chiusura** del tavolo, a scelta |
+| **Vite** | Trentuno, Picozzo, Cucù, gioco libero: il master toglie e ridà vite, gli eliminati vanno in fondo alla classifica |
+| **Punti** | Scopa, Briscola, Tressette, Burraco, anche a coppie |
 | **Correzioni** | annulla ultima mano, allontana giocatore, annulla tavolo |
-| **Classifica** | per fiches, vittorie e partite, con podio |
-| **Admin (staff)** | panoramica, richieste GM, utenti (ruoli, sospensioni, rettifiche fiches motivate), tavoli (chiusura/annullo forzati), catalogo giochi (modifica e creazione), impostazioni (bonus, ruota, fiches iniziali, scadenza codici, QR on/off), registro movimenti e audit |
-| **Design** | casinò (panno verde, oro Art Déco, lampadine a inseguimento, fiches) e sala giochi (neon, cuori pixel, tabellone LED); pioggia di fiches, suoni, vibrazione, "riduci animazioni" |
+| **Classifica** | per fiches, vittorie e partite |
+| **Admin (staff)** | panoramica; richieste GM; utenti (ruoli, sospensioni, rettifiche fiches motivate, **scrittura del braccialetto pass**); tavoli (chiusura/annullo forzati); catalogo giochi (modifica e creazione); impostazioni (bonus, ruota, fiches iniziali, durata PIN, codice manuale on/off, fuso orario); registro movimenti e registro azioni |
+| **Sicurezza** | password con `password_hash`, sessione in cookie HttpOnly, protezione CSRF, blocco dopo 10 accessi falliti in 15 minuti, ogni movimento di fiches in transazione con registro contabile, database non scaricabile (`.htaccess`) |
+| **Design** | casinò (panno verde, oro Art Déco, lampadine marquee, fiches) e sala giochi (neon, cuori pixel, tabellone LED); pioggia di fiches, suoni, vibrazione su Android, opzione "riduci animazioni" |
 
-## Avvio rapido (modalità demo)
+## Pubblicare su Aruba Hosting Linux Basic
 
-Non serve nessun server: senza configurazione l'app parte in **modalità demo** e salva i dati nel browser.
+**Cosa serve**: hosting Linux con PHP 8.0 o successivo (Aruba Basic offre PHP 8.0–8.5), certificato SSL attivo (incluso nel piano Basic) e un client FTP (es. FileZilla). Non serve il database MySQL.
 
-```bash
-npm install
-```
+1. **Crea il pacchetto** sul tuo computer (serve [Node.js](https://nodejs.org) 20+):
+   ```bash
+   npm install
+   ```
+   ```bash
+   npm run build
+   ```
+   Si crea la cartella `dist/` con il sito, la cartella `api/` (PHP) e il file `.htaccess`.
+2. **Carica via FTP tutto il contenuto di `dist/`** nella cartella principale del sito, compresi i file nascosti (`.htaccess`, `api/data/.htaccess`). In FileZilla attiva *Server → Forza visualizzazione file nascosti*.
+3. **Verifica l'hosting** aprendo `https://www.tuodominio.it/api/health`. Deve rispondere con `"pdoSqlite": true`, `"dataDirWritable": true` e `"https": true`.
+   - `pdoSqlite: false` → attiva l'estensione **pdo_sqlite** nel pannello PHP di Aruba o chiedi all'assistenza;
+   - `dataDirWritable: false` → con l'FTP dai alla cartella `api/data` i permessi di scrittura (755 o 775);
+   - `https: false` → apri il sito con `https://`; se serve, togli il `#` alle righe "HTTPS" in `.htaccess`.
+4. **Registrati subito**: il primo account creato diventa **staff**. Da lì approvi i game master e gestisci tutto dal pannello ★ Staff.
+
+**Aggiornamenti**: rifai `npm run build` e ricarica i file, **senza toccare `api/data/`** (lì c'è il database `party-casino.sqlite`). **Backup**: scarica periodicamente quel file via FTP.
+
+**Sottocartella** (es. `tuodominio.it/party/`): crea il pacchetto con `VITE_BASE=/party/ npm run build` e copia `api/config.sample.php` in `api/config.php` impostando `'cookie_path' => '/party/'`.
+
+**URL negli adesivi e nei QR**: di default si usa l'indirizzo da cui è aperto il sito. Per fissarlo, crea `.env.production.local` con `VITE_PUBLIC_URL=https://www.tuodominio.it` (vedi `.env.example`).
+
+**Hardware consigliato**: adesivi o braccialetti NFC **NTAG213/215/216** (economici e compatibili con Android e iPhone), uno per tavolo più uno per giocatore se si usano i pass.
+
+## Provarlo sul computer
+
+**Demo senza server** (dati nel browser, NFC simulato):
 
 ```bash
 npm run dev
 ```
 
-Apri http://localhost:5173 e accedi con uno degli account dimostrativi (password `demo`): `admin` (staff), `mazziere` (game master), `luca`, `giulia`, `marco`, `sofia`, `ale`.
+Apri http://localhost:5173 e usa gli account dimostrativi (password `demo`): `admin` (staff), `mazziere` (game master), `luca`, `giulia`, `marco`, `sofia`, `ale`. Per simulare più telefoni apri più schede con account diversi. Il master *scrive* l'adesivo virtuale del tavolo; il giocatore, da *Entra → Leggi l'adesivo NFC*, lo tocca nell'elenco degli adesivi virtuali.
 
-**Simulare più telefoni.** Apri l'app in più schede dello stesso browser con account diversi. L'NFC è simulato tra le schede: nella scheda del master apri un tavolo (modalità 📲 *Telefono*, cioè trasmissione); nella scheda del giocatore premi *Entra → Tocca e avvicina il telefono*. Funziona anche al contrario: il giocatore attiva *Emetti il mio pass* e il master usa *Leggi pass*.
+**Con l'API PHP vera** (serve PHP 8 con pdo_sqlite), in due terminali:
+
+```bash
+npm run dev:api
+```
+
+```bash
+npm run dev:server
+```
+
+Per provare il pacchetto finale come su Aruba, compila con `npm run build` e poi:
+
+```bash
+npm run preview:aruba
+```
+
+Il sito è su http://127.0.0.1:8080 e il database finisce nella cartella `.data/`.
 
 ## Architettura
 
 ```
-React 19 + TypeScript + Vite  ──►  web/PWA + pannello admin
-        │ Capacitor 8           ──►  app iOS (Core NFC) e Android (NFC + HCE)
-        ▼
-Backend (interfaccia unica src/data/backend.ts)
- ├─ LocalBackend    → demo nel browser (localStorage + BroadcastChannel)
- └─ SupabaseBackend → PostgreSQL + RLS + funzioni RPC transazionali + Realtime
+Browser (React 19 + TypeScript + Vite) ──fetch JSON + cookie di sessione──► /api/*.php (PHP 8)
+   │  Web NFC (Chrome Android)                                                     │
+   │  polling /api/version ogni 2-6 s                                              ▼
+   └─ modalità demo: LocalBackend (localStorage)                   api/data/party-casino.sqlite
 ```
 
 | Cartella | Contenuto |
 |---|---|
 | `src/core/` | modello di dominio, regole pure (esiti, piazzamenti, bonus, livelli), catalogo giochi |
-| `src/data/` | interfaccia backend, implementazione demo e Supabase |
-| `src/nfc/` | astrazione NFC: nativo (`@capgo/capacitor-nfc` + plugin HCE), Web NFC, simulatore; formato NDEF/URL |
-| `src/ui/` | design system: marquee, fiches, cuori pixel, ruota, effetti, pannelli NFC |
+| `src/data/` | interfaccia unica `Backend`, `ApiBackend` (produzione) e `LocalBackend` (demo) |
+| `src/nfc/` | Web NFC, simulatore per la demo, formato degli URL negli adesivi/QR |
+| `src/ui/`, `src/styles/` | design system casinò/sala giochi, ruota, effetti, pannelli NFC |
 | `src/screens/` | sala, entra, apri tavolo, tavolo (console del master e vista giocatore), classifica, profili, giochi, admin |
-| `supabase/migrations/` | schema, RLS, RPC (le stesse regole di `src/core/rules.ts`) |
-| `supabase/tests/` | test d'integrazione SQL su un PostgreSQL temporaneo |
-| `android/`, `ios/` | progetti nativi Capacitor (HCE Android, entitlement NFC iOS) |
+| `server/api/` | API PHP: `index.php` (rotte), `lib/service.php` (regole e operazioni), `lib/db.php` (schema SQLite creato automaticamente) |
+| `server/.htaccess` | riscritture per API e rotte dell'app, protezione dei file |
+| `scripts/package-aruba.mjs` | assembla `dist/` pronto per l'FTP |
+| `tests/api.test.ts` | test d'integrazione sul vero server PHP + SQLite |
 
-### Formato NFC
+Le regole di gioco sono scritte due volte, in TypeScript per la demo e in PHP per il server, con gli stessi messaggi. Il catalogo giochi PHP è una copia di quello TypeScript: i test verificano che i due cataloghi coincidano e che il server applichi le regole.
 
-I tag, i telefoni in emulazione e i QR contengono un **URL https** (record NDEF URI):
-
-- tavolo: `https://DOMINIO/j/CODICE/TOKEN`
-- pass giocatore: `https://DOMINIO/p/TOKEN`
-
-Così un iPhone **senza app** che tocca un adesivo apre la web app, e con l'app installata il link apre l'app (Universal/App Links). Il token del telefono del master scade dopo `joinTokenTtlSeconds` (default 120 s) e si rinnova da solo. Il token dell'adesivo vale finché il tavolo è aperto. Nessun token è leggibile dagli altri client.
-
-## Produzione con Supabase
-
-1. Crea un progetto su [supabase.com](https://supabase.com) e applica la migrazione (SQL Editor oppure CLI):
-   ```bash
-   supabase db push
-   ```
-   oppure incolla `supabase/migrations/20261101000000_init.sql` nell'SQL Editor.
-2. Copia `.env.example` in `.env` e compila `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` e `VITE_PUBLIC_URL` (il dominio dove pubblichi la web app).
-3. Registrati dall'app, poi promuovi il primo account staff dall'SQL Editor:
-   ```sql
-   update public.profiles set role = 'staff' where username = 'il_tuo_username';
-   ```
-4. Pubblica la web app (`npm run build` → cartella `dist/`) su un hosting HTTPS (Vercel, Netlify, Cloudflare Pages…) con *fallback SPA* su `index.html`.
-
-## App native (iOS e Android)
-
-```bash
-npm run cap:android
-```
-
-```bash
-npm run cap:ios
-```
-
-Questi comandi compilano la web app, sincronizzano i progetti nativi e aprono Android Studio / Xcode.
-
-**Android**: il plugin di emulazione è in `android/app/src/main/java/club/partycasino/app/` (`NdefHceService` emula un tag NFC Forum Type 4 con AID `D2760000850101`, `NfcHcePlugin` lo accende e spegne). Per gli App Links sostituisci `party.example.com` in `AndroidManifest.xml` e pubblica `public/.well-known/assetlinks.json` con l'impronta SHA-256 del tuo certificato.
-
-**iOS**: le capability *NFC Tag Reading* e *Associated Domains* sono in `ios/App/App/App.entitlements`. Sostituisci il dominio, abilita le capability sull'App ID nel portale Apple Developer e pubblica `public/.well-known/apple-app-site-association` con il tuo Team ID. iPhone legge e scrive tag e legge i telefoni Android in emulazione, ma **non può emulare** (vedi ricerca §3).
-
-**Hardware consigliato**: adesivi o braccialetti NFC NTAG213/215/216 per i tavoli e per i pass dei giocatori (utili soprattutto con gli iPhone).
+**Formato dei link** negli adesivi NFC e nei QR: tavolo `https://DOMINIO/j/CODICE/TOKEN`, braccialetto pass `https://DOMINIO/p/TOKEN`.
 
 ## Test
 
@@ -108,13 +130,11 @@ Questi comandi compilano la web app, sincronizzano i progetti nativi e aprono An
 npm test
 ```
 
-Esegue i test unitari delle regole, del backend demo (flussi completi multi-utente) e della codifica NDEF.
+I test sono 29:
 
-```bash
-npm run test:sql
-```
-
-Applica la migrazione su un PostgreSQL temporaneo (con stub minimi di `auth`) ed esegue 50 verifiche: permessi, RLS, token, mani, vite, coppie, bonus, admin, coerenza registro/saldi.
+- **regole di gioco**;
+- **backend demo**: flussi completi con più utenti;
+- **API PHP reale**: un server `php -S` con un database SQLite temporaneo. Coprono registrazione e accesso, CSRF, richieste GM, blackjack con adesivo e braccialetto, saldo alla chiusura, vite con PIN, scadenza dei codici, bonus, coppie, admin, coerenza registro/saldi, blocco dei tentativi e aggiornamento via polling.
 
 ```bash
 npm run typecheck
@@ -122,8 +142,15 @@ npm run typecheck
 
 ## Stato e limiti noti
 
-- Verificati in questo repository: test unitari, test SQL su PostgreSQL 16, build, flusso end-to-end nel browser con più "telefoni" simulati (Playwright).
-- Il **plugin HCE Android** compila contro le API Android 35, ma va provato su dispositivi reali. Anche le **build native** (Android Studio/Xcode) non sono state eseguite qui.
-- `SupabaseBackend` usa le stesse RPC testate in SQL, ma non è stato provato contro un progetto Supabase reale (va verificato soprattutto il Realtime).
-- Regole del **Picozzo**: non sono state trovate fonti; è configurato come gioco a vite con regole della casa, modificabili dallo staff.
-- Prima di pubblicare sugli store: verificare le policy su "gioco simulato" e la classificazione d'età, e preparare l'informativa privacy (profili pubblici).
+- **Verificato in questo repository**:
+  - test unitari e d'integrazione PHP + SQLite (PHP 8.3);
+  - build del pacchetto per Aruba;
+  - flusso nel browser sul pacchetto servito da PHP: approvazione del GM, apertura del tavolo, iPhone che entra con il codice, ingresso dal link del QR, mano registrata con aggiornamento via polling, chiusura;
+  - demo con adesivo NFC simulato.
+- **Non verificato**:
+  - il deploy su un vero account Aruba: `.htaccess`, permessi della cartella `api/data`, presenza di **pdo_sqlite**. Per controllare c'è `api/health`;
+  - la lettura e scrittura NFC su un vero telefono Android: Web NFC non si può provare nel browser automatico usato per i test;
+  - la compatibilità con PHP 8.0: il codice evita le funzioni successive alla 8.0, ma è stato eseguito solo su PHP 8.3.
+- SQLite è adatto a una festa (decine di giocatori). Le scritture sono brevi e serializzate e il database usa il journal classico, il più sicuro su hosting condiviso.
+- **Picozzo**: non sono state trovate fonti sulle regole; è un gioco a vite con regole della casa, modificabili dallo staff.
+- Prima di rendere il sito pubblico: informativa privacy (i profili sono pubblici) e, se serve, un modo per cancellare gli account (oggi lo staff può sospenderli).

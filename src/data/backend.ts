@@ -29,7 +29,8 @@ import type {
 export type Unsubscribe = () => void;
 
 export interface SignUpInput {
-  email: string;
+  /** usata solo dalla demo: il server identifica gli utenti con lo username */
+  email?: string;
   password: string;
   username: string;
   displayName: string;
@@ -45,17 +46,19 @@ export interface DemoAccount {
 /**
  * Contratto unico per l'accesso ai dati. Due implementazioni:
  * - LocalBackend: modalità demo, tutto nel browser (multi-scheda via BroadcastChannel);
- * - SupabaseBackend: produzione (Postgres + RLS + RPC transazionali + Realtime).
+ * - ApiBackend: produzione, API PHP + SQLite (server/api) su hosting condiviso (es. Aruba Linux Basic),
+ *   con aggiornamento dei tavoli tramite polling.
  * Tutte le operazioni che muovono fiches sono atomiche lato server.
  */
 export interface Backend {
-  readonly mode: 'demo' | 'supabase';
+  readonly mode: 'demo' | 'server';
 
   // --- autenticazione ---
   currentUser(): Promise<Profile | null>;
   signIn(identifier: string, password: string): Promise<Profile>;
   signUp(input: SignUpInput): Promise<Profile>;
   signOut(): Promise<void>;
+  changePassword?(current: string, next: string): Promise<void>;
   onAuthChange(cb: () => void): Unsubscribe;
   demoAccounts?(): Promise<DemoAccount[]>;
 
@@ -107,6 +110,8 @@ export interface Backend {
   adminSetRole(userId: string, role: Role): Promise<void>;
   adminSetBanned(userId: string, banned: boolean): Promise<void>;
   adminAdjustChips(userId: string, delta: number, reason: string): Promise<void>;
+  /** token del pass di un utente, per scrivergli un braccialetto NFC (es. giocatori con iPhone) */
+  adminUserPassToken(userId: string): Promise<string>;
   adminListGmRequests(status?: GmRequestStatus): Promise<GmRequest[]>;
   adminReviewGmRequest(id: string, approve: boolean, note?: string): Promise<void>;
   adminListTables(statuses?: TableStatus[]): Promise<TableSummary[]>;

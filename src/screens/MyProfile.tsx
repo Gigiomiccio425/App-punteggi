@@ -7,7 +7,7 @@ import { LocalBackend } from '../data/local/LocalBackend';
 import { dateTime, fmt, LEDGER_LABEL, signed } from '../lib/format';
 import { passUrl } from '../nfc/payload';
 import { Avatar, Confirm, Panel, Toggle } from '../ui/kit';
-import { NfcWaves, NfcWriteButton, useEmulation, useNfcCaps } from '../ui/nfc-ui';
+import { NfcWriteButton, useNfcCaps } from '../ui/nfc-ui';
 
 function EditProfile() {
   const me = useMe();
@@ -67,33 +67,33 @@ function EditProfile() {
 }
 
 function PassSection() {
+  const me = useMe();
   const { backend, fail, toast } = useApp();
   const caps = useNfcCaps();
-  const pass = useAsync(() => backend.getMyPassToken(), [backend]);
-  const [emit, setEmit] = useState(false);
   const [rotate, setRotate] = useState(false);
-  useEmulation(pass.data ? passUrl(pass.data) : null, emit);
   return (
-    <Panel title="🎫 Il mio pass NFC" tone="dark" className="pass-section">
+    <Panel title="🎫 Il mio braccialetto pass NFC" tone="dark" className="pass-section">
       <div id="pass" />
       <p className="small">
-        Il pass ti identifica quando è il <strong>game master</strong> a leggerti. Scrivilo su un braccialetto o adesivo NFC (NTAG213/215/216): da quel momento basta avvicinarlo al suo telefono.
+        Il pass serve quando è il <strong>game master</strong> a farti sedere: avvicini il braccialetto (o un adesivo NFC NTAG213/215/216) al suo telefono Android e sei al
+        tavolo, senza toccare il tuo telefono.
       </p>
-      <div className="row wrap">
-        {caps.data?.canWrite && (
-          <NfcWriteButton label="Scrivi su braccialetto/adesivo" done="Pass scritto! Tienilo con te." getUrl={async () => passUrl(await backend.getMyPassToken())} />
-        )}
-        <button type="button" className="btn btn-ghost btn-small" onClick={() => setRotate(true)}>
-          Rigenera pass (se l’hai perso)
-        </button>
-      </div>
-      {caps.data?.canEmulate && (
-        <>
-          <Toggle checked={emit} onChange={setEmit} label="Usa questo telefono come pass" hint="Android: il telefono si comporta come un braccialetto NFC" />
-          {emit && <NfcWaves mode="emit" label="Pass in trasmissione…" />}
-        </>
+      {caps.data?.canWrite ? (
+        <NfcWriteButton
+          label="Scrivi il pass su braccialetto/adesivo"
+          done="Pass scritto! Tienilo con te."
+          tagLabel={`Braccialetto di @${me.username}`}
+          getUrl={async () => passUrl(await backend.getMyPassToken())}
+        />
+      ) : (
+        <p className="small muted">
+          Da questo telefono non puoi scrivere tag NFC{caps.data?.ios ? ' (iPhone)' : ''}: chiedi allo staff, che può scriverti il braccialetto dal pannello admin con un
+          telefono Android.
+        </p>
       )}
-      {!caps.data?.canWrite && !caps.data?.canEmulate && <p className="small muted">{caps.data?.note}</p>}
+      <button type="button" className="btn btn-ghost btn-small" onClick={() => setRotate(true)}>
+        Rigenera pass (se hai perso il braccialetto)
+      </button>
       <Confirm
         open={rotate}
         title="Rigenerare il pass?"
@@ -103,15 +103,52 @@ function PassSection() {
         onConfirm={async () => {
           try {
             await backend.rotateMyPassToken();
-            await pass.reload();
-            toast('Pass rigenerato: i vecchi braccialetti non funzionano più', 'success');
+            toast('Pass rigenerato: il vecchio braccialetto non funziona più', 'success');
           } catch (e) {
             fail(e);
           }
         }}
       >
-        <p>Il vecchio braccialetto/adesivo smetterà di funzionare. Dovrai riscriverne uno nuovo.</p>
+        <p>Il vecchio braccialetto smetterà di funzionare e dovrai scriverne uno nuovo.</p>
       </Confirm>
+    </Panel>
+  );
+}
+
+function PasswordSection() {
+  const { backend, fail, toast } = useApp();
+  const [current, setCurrent] = useState('');
+  const [next, setNext] = useState('');
+  if (!backend.changePassword) return null;
+  return (
+    <Panel title="Password" tone="dark">
+      <div className="field-row">
+        <label className="field">
+          <span>Attuale</span>
+          <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" />
+        </label>
+        <label className="field">
+          <span>Nuova (min. 6)</span>
+          <input type="password" value={next} onChange={(e) => setNext(e.target.value)} minLength={6} autoComplete="new-password" />
+        </label>
+      </div>
+      <button
+        type="button"
+        className="btn btn-ghost btn-small"
+        disabled={!current || next.length < 6}
+        onClick={async () => {
+          try {
+            await backend.changePassword!(current, next);
+            setCurrent('');
+            setNext('');
+            toast('Password aggiornata', 'success');
+          } catch (e) {
+            fail(e);
+          }
+        }}
+      >
+        Cambia password
+      </button>
     </Panel>
   );
 }
@@ -198,6 +235,7 @@ export function MyProfile() {
       <EditProfile />
       <PassSection />
       <GmRequestSection />
+      <PasswordSection />
       <Panel title="Preferenze" tone="dark">
         <Toggle checked={prefs.sound} onChange={(v) => setPrefs({ ...prefs, sound: v })} label="Effetti sonori e vibrazione" />
         <Toggle checked={prefs.reduceMotion} onChange={(v) => setPrefs({ ...prefs, reduceMotion: v })} label="Riduci animazioni" hint="Disattiva ruote, coriandoli e luci lampeggianti" />

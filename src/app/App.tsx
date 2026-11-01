@@ -1,6 +1,5 @@
-import { useEffect, type ReactNode } from 'react';
-import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { Capacitor } from '@capacitor/core';
+import type { ReactNode } from 'react';
+import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { useApp } from './context';
 import { useAsync } from './hooks';
 import { ChipCount, Logo, Spinner, Toasts } from '../ui/kit';
@@ -15,27 +14,6 @@ import { PlayerProfile } from '../screens/PlayerProfile';
 import { MyProfile } from '../screens/MyProfile';
 import { Games } from '../screens/Games';
 import { Admin } from '../screens/admin/Admin';
-
-function DeepLinks() {
-  const navigate = useNavigate();
-  useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
-    let remove: (() => void) | undefined;
-    void import('@capacitor/app').then(async ({ App }) => {
-      const h = await App.addListener('appUrlOpen', (ev) => {
-        try {
-          const u = new URL(ev.url);
-          navigate(u.pathname + u.search);
-        } catch {
-          // URL non valido: ignorato
-        }
-      });
-      remove = () => void h.remove();
-    });
-    return () => remove?.();
-  }, [navigate]);
-  return null;
-}
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { me, authReady } = useApp();
@@ -116,8 +94,7 @@ function Shell({ children }: { children: ReactNode }) {
 
 export function App() {
   return (
-    <BrowserRouter>
-      <DeepLinks />
+    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || undefined}>
       <Shell>
         <Routes>
           <Route path="/login" element={<Login />} />

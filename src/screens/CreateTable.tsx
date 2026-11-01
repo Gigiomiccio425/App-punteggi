@@ -50,7 +50,7 @@ export function CreateTable() {
         useTeams,
       });
       sfx.win();
-      toast('Tavolo aperto! Fai entrare i giocatori con l’NFC.', 'success');
+      toast('Tavolo aperto! Fai entrare i giocatori con il codice o con l’NFC.', 'success');
       navigate(`/tavolo/${id}`);
     } catch (e) {
       fail(e);

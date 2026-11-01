@@ -4,9 +4,9 @@ import { useApp } from '../app/context';
 import { useAsync } from '../app/hooks';
 import { errMsg } from '../lib/format';
 import { sfx } from '../lib/sfx';
-import { parsePayload, passUrl } from '../nfc/payload';
-import { Empty, Panel, Spinner, Toggle } from '../ui/kit';
-import { NfcWaves, useEmulation, useNfcCaps, useNfcReader } from '../ui/nfc-ui';
+import { parsePayload } from '../nfc/payload';
+import { Empty, Panel, Spinner } from '../ui/kit';
+import { NfcWaves, useNfcCaps, useNfcReader } from '../ui/nfc-ui';
 
 export function Join() {
   const { backend, fail, toast, settings } = useApp();
@@ -15,21 +15,14 @@ export function Join() {
   const reader = useNfcReader();
   const [code, setCode] = useState('');
   const [pin, setPin] = useState('');
-  const [showPass, setShowPass] = useState(false);
-  const pass = useAsync(() => backend.getMyPassToken(), [backend]);
   const mine = useAsync(() => backend.myActiveTableId(), [backend]);
-  useEmulation(pass.data ? passUrl(pass.data) : null, showPass);
 
-  // Quando il master legge il mio pass, mi ritrovo seduto: vado al tavolo.
+  // Se il master legge il mio braccialetto pass mi ritrovo seduto: vado al tavolo.
   const { reload } = mine;
   useEffect(() => backend.subscribeLobby(() => void reload()), [backend, reload]);
   useEffect(() => {
-    if (showPass && mine.data) {
-      sfx.nfc();
-      toast('Sei stato fatto accomodare al tavolo!', 'success');
-      navigate(`/tavolo/${mine.data}`, { state: { joined: true } });
-    }
-  }, [mine.data, showPass, navigate, toast]);
+    if (mine.data) navigate(`/tavolo/${mine.data}`, { replace: true, state: { joined: true } });
+  }, [mine.data, navigate]);
 
   const join = async (c: string, token: string, via: 'nfc_table' | 'code') => {
     const id = await backend.joinWithToken(c, token, via);
@@ -40,10 +33,10 @@ export function Join() {
 
   const scan = async () => {
     try {
-      const text = await reader.read('Avvicina il telefono a quello del game master o all’adesivo NFC del tavolo');
+      const text = await reader.read('Avvicina il retro del telefono all’adesivo NFC del tavolo');
       const p = parsePayload(text);
       if (!p) throw new Error('Questo tag non appartiene a un tavolo di Party Casinò.');
-      if (p.kind === 'pass') throw new Error('Questo è il pass di un giocatore: avvicina il telefono al tavolo o al master.');
+      if (p.kind === 'pass') throw new Error('Questo è un braccialetto pass: va avvicinato al telefono del master.');
       await join(p.code, p.token, 'nfc_table');
     } catch (e) {
       fail(e);
@@ -59,68 +52,64 @@ export function Join() {
     }
   };
 
-  if (mine.data && !showPass) {
-    return (
-      <Empty icon="🃏">
-        Sei già seduto a un tavolo. <Link to={`/tavolo/${mine.data}`}>Vai al tuo tavolo</Link>
-      </Empty>
-    );
-  }
-
+  if (caps.loading || !caps.data) return <Spinner label="Controllo il telefono…" />;
   const c = caps.data;
+  const manualAllowed = settings?.allowManualCode ?? true;
+
+  const codePanel = manualAllowed ? (
+    <Panel title={c.canRead ? 'Oppure con il codice' : '🔢 Entra con il codice'} tone={c.canRead ? 'dark' : 'felt'} className="code-panel">
+      <p className="small">
+        Il master ti detta (o ti mostra sul suo telefono) il <strong>codice del tavolo</strong> e il <strong>PIN</strong>. Il PIN cambia ogni pochi minuti.
+      </p>
+      <form className="pin-form" onSubmit={submitPin}>
+        <input className="input-code" placeholder="CODICE" value={code} onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} maxLength={5} autoCapitalize="characters" autoComplete="off" required aria-label="Codice tavolo" />
+        <input className="input-code" placeholder="PIN" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} inputMode="numeric" maxLength={6} autoComplete="one-time-code" required aria-label="PIN" />
+        <button type="submit" className="btn btn-gold">
+          Entra
+        </button>
+      </form>
+      <p className="small muted">Puoi anche inquadrare con la fotocamera il QR mostrato dal master: si apre direttamente il tavolo.</p>
+    </Panel>
+  ) : (
+    !c.canRead && <p className="warn">Lo staff ha disattivato l’ingresso con codice: chiedi al master di leggere il tuo braccialetto pass NFC.</p>
+  );
+
   return (
     <div className="stack join">
-      <Panel tone="dark" className="join-hero">
-        <h1 className="screen-title">Entra al tavolo</h1>
-        {caps.loading ? (
-          <Spinner label="Controllo l’NFC…" />
-        ) : c?.canRead ? (
-          <>
-            <button type="button" className="nfc-big-button" onClick={scan} aria-label="Leggi NFC">
-              <NfcWaves active={false} />
-            </button>
-            <button type="button" className="btn btn-gold btn-big btn-shine" onClick={scan}>
-              Tocca e avvicina il telefono
-            </button>
-            <p className="muted small center">
-              Avvicina il retro del telefono a quello del game master (Android) o all’adesivo NFC sul tavolo.
-            </p>
-            {c.disabled && <p className="warn">L’NFC è disattivato nelle impostazioni del telefono.</p>}
-          </>
-        ) : (
-          <p className="warn">{c?.note ?? 'NFC non disponibile.'}</p>
-        )}
-        {c?.note && c.canRead && <p className="muted small center">{c.note}</p>}
-      </Panel>
+      <h1 className="screen-title center">Entra al tavolo</h1>
 
-      <Panel title="Fatti leggere dal master" tone="felt">
-        <p className="small">
-          In alternativa è il master a leggere te: avvicina il tuo <strong>braccialetto/adesivo pass</strong> al suo telefono
-          {c?.canEmulate ? ', oppure trasforma questo telefono nel tuo pass.' : '.'}
-        </p>
-        {c?.canEmulate && (
-          <>
-            <Toggle checked={showPass} onChange={setShowPass} label="Emetti il mio pass NFC" hint="Tieni lo schermo acceso e avvicina il telefono a quello del master" />
-            {showPass && <NfcWaves mode="emit" label="Pass in trasmissione…" />}
-          </>
-        )}
-        <Link to="/profilo#pass" className="btn btn-ghost btn-small">
-          Scrivi il pass su un braccialetto NFC
-        </Link>
-      </Panel>
+      {c.canRead ? (
+        <Panel tone="dark" className="join-hero">
+          <button type="button" className="nfc-big-button" onClick={scan} aria-label="Leggi l’adesivo NFC del tavolo">
+            <NfcWaves active={false} />
+          </button>
+          <button type="button" className="btn btn-gold btn-big btn-shine" onClick={scan}>
+            Leggi l’adesivo NFC del tavolo
+          </button>
+          <p className="muted small center">Tocca il pulsante e avvicina il retro del telefono all’adesivo NFC sul tavolo.</p>
+          {c.note && <p className="muted small center">{c.note}</p>}
+        </Panel>
+      ) : (
+        c.note && <p className="info-box">{c.ios ? '📱 ' : ''}{c.note}</p>
+      )}
 
-      {settings?.allowQrFallback && (
-        <Panel title="Niente NFC? Usa il PIN" tone="dark">
-          <p className="small muted">Il master può mostrare un QR (inquadralo con la fotocamera) oppure dettarti codice tavolo e PIN.</p>
-          <form className="pin-form" onSubmit={submitPin}>
-            <input className="input-code" placeholder="CODICE" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} maxLength={5} required aria-label="Codice tavolo" />
-            <input className="input-code" placeholder="PIN" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} inputMode="numeric" maxLength={6} required aria-label="PIN" />
-            <button type="submit" className="btn btn-felt">
-              Entra
-            </button>
-          </form>
+      {codePanel}
+
+      {c.ios && (
+        <Panel tone="dark" title="Trucco per iPhone">
+          <p className="small">
+            Su iPhone XS o più recente puoi anche avvicinare l’iPhone (sbloccato) all’<strong>adesivo NFC del tavolo</strong>: compare una notifica, toccala e si apre il
+            tavolo in Safari, già pronto per farti sedere.
+          </p>
         </Panel>
       )}
+
+      <Panel title="🎫 Hai un braccialetto pass?" tone="felt">
+        <p className="small">Avvicinalo al telefono del master (Android): ti fa sedere lui, questa pagina si aggiorna da sola.</p>
+        <Link to="/profilo#pass" className="btn btn-ghost btn-small">
+          {c.canWrite ? 'Scrivi il tuo pass su un braccialetto' : 'Come ottenere un braccialetto pass'}
+        </Link>
+      </Panel>
       {reader.sheet}
     </div>
   );
@@ -149,7 +138,7 @@ export function JoinLink() {
     return (
       <Empty icon="⚠️">
         {error} <br />
-        <Link to="/entra">Riprova</Link>
+        <Link to="/entra">Inserisci il codice a mano</Link>
       </Empty>
     );
   }

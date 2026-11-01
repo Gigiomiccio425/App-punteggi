@@ -1,15 +1,15 @@
 import type { Backend } from './backend';
+import { ApiBackend } from './api/ApiBackend';
 import { LocalBackend } from './local/LocalBackend';
 
-export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-export const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
-
-/** Supabase se configurato via .env, altrimenti modalità demo nel browser. */
+/**
+ * Produzione: API PHP + SQLite pubblicata insieme al sito (cartella /api).
+ * Demo (dati solo nel browser): VITE_BACKEND=demo in fase di build/sviluppo, oppure ?demo nell'URL.
+ */
 export async function createBackend(): Promise<Backend> {
-  const forceDemo = new URLSearchParams(location.search).has('demo');
-  if (SUPABASE_URL && SUPABASE_KEY && !forceDemo) {
-    const { SupabaseBackend } = await import('./supabase/SupabaseBackend');
-    return new SupabaseBackend(SUPABASE_URL, SUPABASE_KEY);
-  }
-  return new LocalBackend();
+  const params = new URLSearchParams(location.search);
+  if (params.has('demo')) sessionStorage.setItem('party-casino-force-demo', '1');
+  const forceDemo = sessionStorage.getItem('party-casino-force-demo') === '1';
+  if (forceDemo || import.meta.env.VITE_BACKEND === 'demo') return new LocalBackend();
+  return new ApiBackend();
 }

@@ -422,11 +422,11 @@ export class LocalBackend implements Backend {
     const username = normalizeUsername(input.username);
     if (!isValidUsername(username)) fail('username', 'Username: 3-20 caratteri tra lettere minuscole, numeri, _ e .');
     if (input.password.length < 6) fail('password', 'La password deve avere almeno 6 caratteri.');
-    if (!/^\S+@\S+\.\S+$/.test(input.email)) fail('email', 'Email non valida.');
+    const email = input.email?.trim() || `${username}@demo.party`;
     const profile = this.mutate((db) => {
       if (db.profiles.some((p) => p.username === username)) fail('username', 'Username già in uso.');
-      if (db.credentials.some((c) => c.email === input.email.toLowerCase())) fail('email', 'Email già registrata.');
-      const p = this.createUser(db, input.email, input.password, username, input.displayName.trim() || username);
+      if (db.credentials.some((c) => c.email === email.toLowerCase())) fail('email', 'Email già registrata.');
+      const p = this.createUser(db, email, input.password, username, input.displayName.trim() || username);
       this.audit(db, p.id, 'signup', username);
       return p;
     });
@@ -947,7 +947,7 @@ export class LocalBackend implements Backend {
     return this.mutate((db) => {
       const { table } = this.requireMaster(db, tableId);
       if (!ACTIVE.includes(table.status)) fail('status', 'Il tavolo è chiuso.');
-      if (kind === 'qr' && !db.settings.allowQrFallback) fail('qr', 'Lo staff ha disattivato l’ingresso con QR/PIN: usa l’NFC.');
+      if (kind === 'qr' && !db.settings.allowManualCode) fail('qr', 'Lo staff ha disattivato l’ingresso con codice: usa l’NFC.');
       const ttl = db.settings.joinTokenTtlSeconds;
       const token: JoinToken = {
         token: kind === 'qr' ? generatePin() : generateToken(16),
@@ -969,8 +969,8 @@ export class LocalBackend implements Backend {
       const match = db.joinTokens.find(
         (t) => t.tableId === table.id && t.token === token.trim() && (!t.expiresAt || Date.parse(t.expiresAt) > now),
       );
-      if (!match) fail('token', 'Codice scaduto o non valido: avvicina di nuovo il telefono al tavolo.');
-      if (match.kind === 'qr' && !db.settings.allowQrFallback) fail('qr', 'Ingresso con QR/PIN disattivato.');
+      if (!match) fail('token', 'Codice scaduto o non valido: chiedi al master il codice aggiornato o riavvicina il telefono.');
+      if (match.kind === 'qr' && !db.settings.allowManualCode) fail('qr', 'Ingresso con codice disattivato.');
       this.opAddParticipant(db, table, me, via);
       this.audit(db, me.id, 'table_join', table.code, { via });
       return table.id;
@@ -1160,6 +1160,15 @@ export class LocalBackend implements Backend {
       const p = this.profile(db, userId);
       this.ledger(db, userId, delta, 'admin_adjust', reason.trim(), null, actor.id);
       this.audit(db, actor.id, 'adjust_chips', p.username, { delta, reason: reason.trim() });
+    });
+  }
+
+  async adminUserPassToken(userId: string): Promise<string> {
+    return this.mutate((db) => {
+      const actor = this.staff(db);
+      const p = this.profile(db, userId);
+      this.audit(db, actor.id, 'pass_read', p.username);
+      return db.passes.find((x) => x.userId === userId)!.token;
     });
   }
 

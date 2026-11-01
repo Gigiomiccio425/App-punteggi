@@ -1,8 +1,7 @@
-// Formato dei dati scritti nei tag / emulati via HCE / mostrati nei QR.
-// Si usa un record NDEF di tipo URI con un URL https: così
-//  - un iPhone (anche senza app) legge il tag in background e apre il link (Universal Link → app, altrimenti Safari);
-//  - Android apre l'app tramite App Links oppure il browser;
-//  - dentro l'app lo stesso URL viene interpretato direttamente.
+// Formato dei dati scritti nei tag NFC e mostrati nei QR: un URL https.
+//  - Android/Chrome: l'app lo legge con Web NFC; toccando il tag fuori dall'app si apre comunque il link;
+//  - iPhone XS e successivi: leggono in background i tag con URL e propongono di aprirlo in Safari;
+//  - fotocamera (QR): apre lo stesso link. Il link /j/CODICE/TOKEN fa sedere al tavolo.
 
 export type NfcPayload =
   | { kind: 'table'; code: string; token: string }
@@ -11,7 +10,10 @@ export type NfcPayload =
 export function publicBaseUrl(): string {
   const configured = (import.meta.env?.VITE_PUBLIC_URL as string | undefined)?.replace(/\/$/, '');
   if (configured) return configured;
-  if (typeof location !== 'undefined' && /^https?:$/.test(location.protocol)) return location.origin;
+  if (typeof location !== 'undefined' && /^https?:$/.test(location.protocol)) {
+    const base = ((import.meta.env?.BASE_URL as string | undefined) ?? '/').replace(/\/$/, '');
+    return location.origin + base;
+  }
   return 'https://party.example.com';
 }
 

@@ -573,14 +573,11 @@ button.chip:disabled { opacity: 0.3; filter: grayscale(0.7); cursor: not-allowed
 .nfc-waves.active .ring { animation: ring 2.1s ease-out infinite; }
 .nfc-waves .r2 { animation-delay: 0.7s !important; }
 .nfc-waves .r3 { animation-delay: 1.4s !important; }
-.nfc-emit .ring { border-color: var(--cyan); box-shadow: 0 0 12px rgba(34, 231, 255, 0.6); }
 .nfc-write .ring { border-color: var(--pink); box-shadow: 0 0 12px rgba(255, 43, 214, 0.6); }
 @keyframes ring { 0% { transform: scale(0.6); opacity: 0.9; } 100% { transform: scale(2.1); opacity: 0; } }
 .nfc-phone { position: relative; display: grid; place-items: center; width: 92px; height: 92px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #1d2b26, #0b1210); border: 2px solid var(--gold); box-shadow: 0 0 20px rgba(212, 175, 55, 0.35); }
 .nfc-phone svg rect { fill: none; stroke: var(--gold-2); stroke-width: 2.5; }
 .nfc-phone svg path { fill: none; stroke: var(--gold-2); stroke-width: 2.5; stroke-linecap: round; }
-.nfc-emit .nfc-phone { border-color: var(--cyan); box-shadow: 0 0 20px rgba(34, 231, 255, 0.5); }
-.nfc-emit .nfc-phone svg * { stroke: var(--cyan); }
 .nfc-label { position: absolute; bottom: 0; left: 0; right: 0; text-align: center; font-size: 0.86rem; color: var(--ivory); }
 .nfc-big-button { display: block; margin: 0 auto; background: none; border: 0; cursor: pointer; width: 100%; }
 .nfc-big-button .ring { animation: ring 2.6s ease-out infinite; }
@@ -685,7 +682,15 @@ button.chip:disabled { opacity: 0.3; filter: grayscale(0.7); cursor: not-allowed
 .join-manager .jm-body { display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
 .qr-box { flex-direction: row !important; align-items: center !important; justify-content: center; flex-wrap: wrap; gap: 18px !important; }
 .qr { border-radius: 10px; border: 6px solid var(--ivory); box-shadow: 0 0 0 2px var(--gold), 0 8px 20px rgba(0, 0, 0, 0.5); background: var(--ivory); }
-.pin-display { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.pin-display { display: flex; justify-content: center; gap: 28px; flex-wrap: wrap; }
+.pin-display > div { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.pin-display .arcade-num.big { font-size: 1.7rem; letter-spacing: 0.12em; }
+.jm-code { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 14px 10px; border-radius: 12px; background: radial-gradient(ellipse at 50% 0%, rgba(255, 225, 77, 0.1), transparent 70%), rgba(0, 0, 0, 0.35); border: 1px dashed rgba(255, 225, 77, 0.45); }
+.jm-nfc { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(212, 175, 55, 0.2); }
+.jm-nfc p { margin: 0; }
+.jm-sub { font-family: var(--f-display); font-weight: 600; font-size: 0.9rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold-2); }
+.info-box { margin: 0; padding: 12px 14px; border-radius: 12px; background: rgba(34, 231, 255, 0.07); border: 1px solid rgba(34, 231, 255, 0.4); font-size: 0.92rem; }
+.code-panel .pin-form { margin: 10px 0; }
 .countdown { font-family: var(--f-arcade); font-size: 0.7rem; color: var(--gold-2); }
 .countdown-low { color: var(--neg); animation: flicker 1s infinite; }
 .late-join { border-radius: var(--radius); border: 1px dashed rgba(212, 175, 55, 0.4); padding: 10px 12px; }

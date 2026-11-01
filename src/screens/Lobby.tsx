@@ -107,7 +107,7 @@ export function Lobby() {
           <Link to="/entra" className="action-tile action-nfc">
             <span className="action-ico">📲</span>
             <span className="action-title">Entra al tavolo</span>
-            <span className="action-sub">Avvicina il telefono</span>
+            <span className="action-sub">Codice tavolo o NFC</span>
           </Link>
         )}
         {canOpenTables(me.role) ? (

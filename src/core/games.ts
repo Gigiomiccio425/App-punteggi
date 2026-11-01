@@ -1,6 +1,6 @@
 import type { GameDef, Outcome } from './types';
 
-// Catalogo iniziale dei giochi. Lo stesso seed è replicato in supabase/migrations.
+// Catalogo iniziale dei giochi. Lo stesso catalogo è in server/api/lib/catalog.php (verificato dai test).
 // Lo staff può modificarlo dal pannello admin (limiti, vite, punti, abilitazione).
 
 const BLACKJACK_OUTCOMES: Outcome[] = [
