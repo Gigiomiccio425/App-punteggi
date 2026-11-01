@@ -1,0 +1,12 @@
+{
+  "name": "Party Casinò",
+  "short_name": "Party Casinò",
+  "description": "Fiches virtuali, vite e punti per le serate di gioco. Entra ai tavoli con l'NFC.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#05080a",
+  "theme_color": "#05080a",
+  "lang": "it",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

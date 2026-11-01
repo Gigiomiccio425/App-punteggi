@@ -1,0 +1,46 @@
+{
+  "name": "party-casino",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Party Casinò: app per serate di gioco con fiches virtuali, vite e punti; ingresso ai tavoli tramite NFC.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:sql": "bash supabase/tests/run-local.sh",
+    "cap:sync": "npm run build && cap sync",
+    "cap:android": "npm run build && cap sync android && cap open android",
+    "cap:ios": "npm run build && cap sync ios && cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.6.0",
+    "@capgo/capacitor-nfc": "^8.3.5",
+    "@fontsource/cinzel": "^5.3.0",
+    "@fontsource/josefin-sans": "^5.3.0",
+    "@fontsource/monoton": "^5.3.0",
+    "@fontsource/press-start-2p": "^5.3.0",
+    "@supabase/supabase-js": "^2.118.0",
+    "qrcode": "^1.5.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router-dom": "^7.18.5"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.0",
+    "@types/node": "^24.0.0",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  }
+}

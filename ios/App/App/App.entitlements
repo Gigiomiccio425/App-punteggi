@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Core NFC: lettura/scrittura di tag NDEF e lettura dei telefoni Android in emulazione (Type 4) -->
+	<key>com.apple.developer.nfc.readersession.formats</key>
+	<array>
+		<string>NDEF</string>
+		<string>TAG</string>
+	</array>
+	<!-- Universal Links: i tag NFC letti in background aprono l'app (sostituisci il dominio) -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:party.example.com</string>
+	</array>
+</dict>
+</plist>

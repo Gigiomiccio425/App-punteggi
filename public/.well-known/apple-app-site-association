@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["SOSTITUISCI_TEAMID.club.partycasino.app"],
+        "components": [
+          { "/": "/j/*", "comment": "Ingresso ai tavoli (tag NFC, QR)" },
+          { "/": "/p/*", "comment": "Pass giocatore" }
+        ]
+      }
+    ]
+  }
+}

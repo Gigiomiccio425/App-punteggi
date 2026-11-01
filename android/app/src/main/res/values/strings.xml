@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Party Casinò</string>
+    <string name="title_activity_main">Party Casinò</string>
+    <string name="package_name">club.partycasino.app</string>
+    <string name="custom_url_scheme">club.partycasino.app</string>
+    <string name="hce_service_description">Party Casinò: tavolo o pass NFC</string>
+    <string name="hce_aid_description">Tag NDEF di Party Casinò</string>
+</resources>
